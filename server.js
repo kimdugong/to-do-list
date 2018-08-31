@@ -24,11 +24,25 @@ app.prepare().then(() => {
   // })
 
   server.post('/todo', (req, res) => {
-    const key = redis.time()[0];
-    const value = JSON.stringify(req.body);
-    redis.set(key, value, (err, data) => {
+    redis.incr('id', (err, result) => {
+      const key = result;
+      Object.assign(req.body, { id: result, timestamp: new Date() });
+      const value = JSON.stringify(req.body);
+      redis.set(key, value, (err, data) => {
+        if (err) throw err;
+        // redis.expire(key, 10);
+        res.json(value);
+      });
+    });
+  });
+
+  server.get('/todo/:id', (req, res) => {
+    const key = req.params.id;
+    redis.get(key, (err, result) => {
       if (err) throw err;
-      // redis.expire(key, 10);
+      if (!result)
+        return res.status(500).send({ err: 'There is no matching data' });
+      const value = JSON.parse(result);
       res.json(value);
     });
   });
