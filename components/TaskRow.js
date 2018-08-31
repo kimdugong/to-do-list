@@ -4,13 +4,13 @@ import { Table, Tab } from 'semantic-ui-react';
 class TaskRow extends Component {
   render() {
     const { Row, Cell, Body } = Table;
-    const { name, age, gender } = this.props;
+    const { id, task, timestamp } = this.props;
     return (
       <Body>
-        <Row key={name}>
-          <Cell>{name}</Cell>
-          <Cell>{age}</Cell>
-          <Cell>{gender}</Cell>
+        <Row key={id}>
+          <Cell>{id}</Cell>
+          <Cell>{task}</Cell>
+          <Cell>{new Date(timestamp).toLocaleTimeString()}</Cell>
         </Row>
       </Body>
     );

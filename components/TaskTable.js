@@ -4,19 +4,18 @@ import { Table } from 'semantic-ui-react';
 
 import TaskRow from './TaskRow';
 
-const tableData = [
-  { name: 'John', age: 15, gender: 'Male' },
-  { name: 'Amber', age: 40, gender: 'Female' },
-  { name: 'Leslie', age: 25, gender: 'Female' },
-  { name: 'Ben', age: 70, gender: 'Male' }
-];
-
 class TaskTable extends Component {
   state = {
     column: null,
-    data: tableData,
+    data: [],
     direction: null
   };
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.tableData !== this.props.tableData) {
+      this.setState(prev => ({ data: [...prev.data, ...nextProps.tableData] }));
+    }
+  }
 
   handleSort = clickedColumn => () => {
     const { column, data, direction } = this.state;
@@ -48,24 +47,24 @@ class TaskTable extends Component {
               sorted={column === 'name' ? direction : null}
               onClick={this.handleSort('name')}
             >
-              Name
+              ID
             </Table.HeaderCell>
             <Table.HeaderCell
               sorted={column === 'age' ? direction : null}
               onClick={this.handleSort('age')}
             >
-              Age
+              Task
             </Table.HeaderCell>
             <Table.HeaderCell
               sorted={column === 'gender' ? direction : null}
               onClick={this.handleSort('gender')}
             >
-              Gender
+              CreatedAt
             </Table.HeaderCell>
           </Table.Row>
         </Table.Header>
-        {_.map(data, ({ age, gender, name }) => (
-          <TaskRow key={name} age={age} gender={gender} name={name} />
+        {_.map(data, ({ task, id, timestamp }) => (
+          <TaskRow key={id} id={id} task={task} timestamp={timestamp} />
         ))}
       </Table>
     );

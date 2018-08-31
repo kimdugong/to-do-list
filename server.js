@@ -2,11 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const next = require('next');
 const redis = require('./redis');
+const { promisify } = require('util');
 
-const port = parseInt(process.env.PORT, 10) || 3000;
+const port = process.env.PORT || 3000;
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
+const getAsync = promisify(redis.get).bind(redis);
 
 app.prepare().then(() => {
   const server = express();
@@ -23,16 +25,47 @@ app.prepare().then(() => {
   //   return app.render(req, res, '/posts', { id: req.params.id })
   // })
 
+  /**
+   * create todo's
+   * request parameter
+   * task, childTask
+   */
+
   server.post('/todo', (req, res) => {
     redis.incr('id', (err, result) => {
       const key = result;
-      Object.assign(req.body, { id: result, timestamp: new Date() });
+      Object.assign(req.body, {
+        id: result,
+        timestamp: new Date(),
+        isCompleted: false
+      });
       const value = JSON.stringify(req.body);
       redis.set(key, value, (err, data) => {
         if (err) throw err;
         // redis.expire(key, 10);
         res.json(value);
       });
+    });
+  });
+
+  /**
+   * fetch all task data
+   */
+  server.get('/todo', (req, res) => {
+    redis.keys('*', async (err, keys) => {
+      if (err) throw err;
+      if (!keys)
+        return res.status(500).send({ err: 'There is no matching data' });
+      const values = await Promise.all(
+        keys
+          .map(key => {
+            if (key !== 'id') {
+              return getAsync(key);
+            }
+          })
+          .filter(e => e !== undefined)
+      );
+      res.send(values.map(e => JSON.parse(e)));
     });
   });
 
