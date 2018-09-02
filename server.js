@@ -36,14 +36,14 @@ app.prepare().then(() => {
       const key = result;
       Object.assign(req.body, {
         id: result,
-        timestamp: new Date(),
+        createdAt: new Date(),
         isCompleted: false
       });
       const value = JSON.stringify(req.body);
       redis.set(key, value, (err, data) => {
         if (err) throw err;
         // redis.expire(key, 10);
-        res.json(value);
+        res.json(JSON.parse(value));
       });
     });
   });
@@ -77,6 +77,24 @@ app.prepare().then(() => {
         return res.status(500).send({ err: 'There is no matching data' });
       const value = JSON.parse(result);
       res.json(value);
+    });
+  });
+
+  /**
+   * update task data
+   */
+
+  server.post('/todo/:id', (req, res) => {
+    const key = req.params.id;
+    Object.assign(req.body, {
+      modifiedAt: new Date()
+    });
+    const value = JSON.stringify(req.body);
+    redis.set(key, value, (err, data) => {
+      if (err) throw err;
+      if (!data)
+        return res.status(500).send({ err: 'There is no matching data' });
+      res.json(JSON.parse(value));
     });
   });
 
