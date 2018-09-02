@@ -6,24 +6,13 @@ const { promisify } = require('util');
 
 const port = process.env.PORT || 3000;
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
+const app = next({ dev, dir: __dirname });
 const handle = app.getRequestHandler();
 const getAsync = promisify(redis.get).bind(redis);
 
-app.prepare().then(() => {
+module.exports = app.prepare().then(() => {
   const server = express();
   server.use(bodyParser.json());
-  // server.get('/a', (req, res) => {
-  //   return app.render(req, res, '/b', req.query)
-  // })
-
-  // server.get('/b', (req, res) => {
-  //   return app.render(req, res, '/a', req.query)
-  // })
-
-  // server.get('/posts/:id', (req, res) => {
-  //   return app.render(req, res, '/posts', { id: req.params.id })
-  // })
 
   /**
    * create todo's

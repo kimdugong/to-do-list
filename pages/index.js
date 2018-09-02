@@ -117,7 +117,6 @@ class TodoList extends Component {
       if (error.response.data.childTask) {
         const { childTask } = error.response.data;
         const undoChildren = [];
-        console.log(childTask);
         for (const undoChild of childTask) {
           const message = `@${undoChild.id} ${undoChild.task}`;
           undoChildren.push(message);
