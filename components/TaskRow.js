@@ -8,8 +8,9 @@ class TaskRow extends Component {
   renderChildTask = childTaskArray =>
     childTaskArray.map(id => `@ ${id}`).join(' ');
 
-  toggleComplete = state => {
-    this.setState({ isCompleted: !state });
+  toggleComplete = async id => {
+    const isCompleted = await this.props.onComplete(id, isCompleted);
+    this.setState({ isCompleted });
   };
 
   componentDidMount() {
@@ -18,32 +19,36 @@ class TaskRow extends Component {
 
   render() {
     const { Row, Cell, Body } = Table;
-    const { id, task, createdAt, childTask, modifiedAt } = this.props;
+    const { id, task, createdAt, childTask, modifiedAt, page } = this.props;
     const { isCompleted } = this.state;
     return (
       <Body>
         <Row key={id}>
           {!isCompleted ? (
             <Cell selectable textAlign="center">
-              <a onClick={() => this.toggleComplete(isCompleted)}>
+              <a onClick={() => this.toggleComplete(id)}>
                 <Icon name="square outline" />
               </a>
             </Cell>
           ) : (
             <Cell selectable textAlign="center" positive>
-              <a onClick={() => this.toggleComplete(isCompleted)}>
+              <a onClick={() => this.toggleComplete(id)}>
                 <Icon name="check square outline" />
               </a>
             </Cell>
           )}
 
-          <Cell>{id}</Cell>
-          <Cell>{`${task}  ${this.renderChildTask(childTask)}`}</Cell>
-          <Cell textAlign="right">{new Date(createdAt).toLocaleString()}</Cell>
-          <Cell textAlign="right">
+          <Cell disabled={isCompleted}>{id}</Cell>
+          <Cell disabled={isCompleted}>{`${task}  ${this.renderChildTask(
+            childTask
+          )}`}</Cell>
+          <Cell textAlign="right" disabled={isCompleted}>
+            {new Date(createdAt).toLocaleString()}
+          </Cell>
+          <Cell textAlign="right" disabled={isCompleted}>
             {modifiedAt ? new Date(modifiedAt).toLocaleString() : '-'}
           </Cell>
-          <Cell selectable textAlign="center">
+          <Cell selectable textAlign="center" disabled={isCompleted}>
             <a onClick={() => this.props.onEdit(id)}>Edit</a>
           </Cell>
         </Row>

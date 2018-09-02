@@ -1,7 +1,13 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 import _ from 'lodash';
-import { Dropdown, Input, Pagination, Button } from 'semantic-ui-react';
+import {
+  Dropdown,
+  Input,
+  Pagination,
+  Button,
+  Message
+} from 'semantic-ui-react';
 import Layout from '../components/Layout';
 import TaskTable from '../components/TaskTable';
 
@@ -11,29 +17,36 @@ class TodoList extends Component {
     onEdit: false,
     task: '',
     childTask: [],
-    onEditId: null
+    onEditId: null,
+    errorMessage: '',
+    undoChildren: [],
+    page: 1
   };
-  constructor(props, context) {
-    super(props, context);
-    this.data = [];
-  }
+
   async componentDidMount() {
     const { data } = await axios.get('/todo');
     const sortedByCreatedAt = _.sortBy(data, ['createdAt', 'asec']);
-    this.data = sortedByCreatedAt;
     this.setState({ data: sortedByCreatedAt });
   }
 
   onEdit = id => {
     event.preventDefault();
+    this.setState({ errorMessage: '', undoChildren: [] });
     this.setState({ onEdit: true, onEditId: id });
     const item = _.find(this.state.data, data => data.id === id);
     this.setState({ task: item.task, childTask: item.childTask });
   };
 
-  onCancle = () => {
+  onCancel = () => {
     event.preventDefault();
-    this.setState({ onEdit: false, task: '', childTask: [], onEditId: null });
+    this.setState({
+      onEdit: false,
+      task: '',
+      childTask: [],
+      onEditId: null,
+      errorMessage: '',
+      undoChildren: []
+    });
   };
 
   onCreate = async () => {
@@ -45,7 +58,7 @@ class TodoList extends Component {
       childTask
     });
     this.setState(prev => ({ data: [...prev.data, data] }));
-    this.onCancle();
+    this.onCancel();
   };
 
   onUpdate = async id => {
@@ -71,7 +84,52 @@ class TodoList extends Component {
         })
       ]
     }));
-    this.onCancle();
+    this.onCancel();
+  };
+
+  onComplete = async id => {
+    event.preventDefault();
+    this.setState({ errorMessage: '', undoChildren: [] });
+    const item = _.find(this.state.data, data => data.id === id);
+    item.isCompleted = !item.isCompleted;
+    try {
+      console.log('item.isCompleted', item.isCompleted);
+      const { data } = await axios.post(`/todo/${id}`, item);
+      console.log('update axios data  : ', data);
+      this.setState(prev => ({
+        data: [
+          ...prev.data.map(item => {
+            return item.id === id
+              ? {
+                  ...item,
+                  task: data.task,
+                  childTask: data.childTask,
+                  isCompleted: data.isCompleted,
+                  modifiedAt: data.modifiedAt
+                }
+              : item;
+          })
+        ]
+      }));
+      return data.isCompleted;
+    } catch (error) {
+      item.isCompleted = !item.isCompleted;
+      if (error.response.data.childTask) {
+        const { childTask } = error.response.data;
+        const undoChildren = [];
+        console.log(childTask);
+        for (const undoChild of childTask) {
+          const message = `@${undoChild.id} ${undoChild.task}`;
+          undoChildren.push(message);
+        }
+        this.setState({
+          errorMessage: '아래 할일 부터 완료해야 완료가 가능합니다.',
+          undoChildren
+        });
+        return false;
+      }
+      return item.isCompleted;
+    }
   };
 
   render() {
@@ -110,7 +168,7 @@ class TodoList extends Component {
         />
 
         <Button.Group
-          style={{ marginTop: 10, marginBottom: 50, display: 'flex' }}
+          style={{ marginTop: 10, marginBottom: 20, display: 'flex' }}
         >
           {!this.state.onEdit ? (
             <Button primary onClick={this.onCreate}>
@@ -125,16 +183,28 @@ class TodoList extends Component {
             </Button>
           )}
 
-          <Button onClick={this.onCancle}>Cancel</Button>
+          <Button onClick={this.onCancel}>Cancel</Button>
         </Button.Group>
+        {this.state.errorMessage ? (
+          <Message
+            error
+            header={this.state.errorMessage}
+            list={this.state.undoChildren}
+          />
+        ) : null}
 
-        <TaskTable tableData={this.state.data} onEdit={id => this.onEdit(id)} />
+        <TaskTable
+          tableData={this.state.data}
+          onEdit={id => this.onEdit(id)}
+          onComplete={id => this.onComplete(id)}
+          page={this.state.page}
+        />
 
         <Pagination
           defaultActivePage={1}
           firstItem={null}
           lastItem={null}
-          totalPages={1}
+          totalPages={this.state.data.length / 4}
           pointing
           secondary
           style={{
@@ -142,6 +212,10 @@ class TodoList extends Component {
             display: 'flex',
             justifyContent: 'center'
           }}
+          size={'mini'}
+          onPageChange={(event, data) =>
+            this.setState({ page: data.activePage })
+          }
         />
       </Layout>
     );

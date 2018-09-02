@@ -84,16 +84,33 @@ app.prepare().then(() => {
    * update task data
    */
 
-  server.post('/todo/:id', (req, res) => {
+  server.post('/todo/:id', async (req, res) => {
     const key = req.params.id;
+    const { isCompleted, childTask } = req.body;
+    if (isCompleted) {
+      const values = await Promise.all(
+        childTask.map(key => {
+          return getAsync(key);
+        })
+      );
+      const undoChild = values
+        .map(e => JSON.parse(e))
+        .filter(e => !e.isCompleted);
+      if (undoChild.length !== 0) {
+        return res.status(422).send({
+          error: 'This task refers incompleted task',
+          childTask: undoChild
+        });
+      }
+    }
     Object.assign(req.body, {
       modifiedAt: new Date()
     });
     const value = JSON.stringify(req.body);
-    redis.set(key, value, (err, data) => {
-      if (err) throw err;
+    redis.set(key, value, (error, data) => {
+      if (error) throw error;
       if (!data)
-        return res.status(500).send({ err: 'There is no matching data' });
+        return res.status(500).send({ error: 'There is no matching data' });
       res.json(JSON.parse(value));
     });
   });

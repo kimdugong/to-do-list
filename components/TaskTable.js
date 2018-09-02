@@ -46,6 +46,8 @@ class TaskTable extends Component {
     });
   };
 
+  dataPaging = (data, page) => data.slice((page - 1) * 4, page * 4);
+
   render() {
     const { column, data, direction } = this.state;
     const { Header, Row, HeaderCell } = Table;
@@ -85,7 +87,7 @@ class TaskTable extends Component {
           </Row>
         </Header>
         {_.map(
-          data,
+          this.dataPaging(data, this.props.page),
           ({ task, id, createdAt, isCompleted, childTask, modifiedAt }) => (
             <TaskRow
               key={id}
@@ -96,6 +98,8 @@ class TaskTable extends Component {
               isCompleted={isCompleted}
               childTask={childTask}
               onEdit={id => this.props.onEdit(id)}
+              onComplete={id => this.props.onComplete(id)}
+              page={this.props.page}
             />
           )
         )}
