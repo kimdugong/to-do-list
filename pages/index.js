@@ -31,28 +31,35 @@ class TodoList extends Component {
 
   onEdit = id => {
     event.preventDefault();
-    this.setState({ errorMessage: '', undoChildren: [] });
-    this.setState({ onEdit: true, onEditId: id });
-    const item = _.find(this.state.data, data => data.id === id);
-    this.setState({ task: item.task, childTask: item.childTask });
+    const { task, childTask } = _.find(this.state.data, data => data.id === id);
+    this.setState({
+      task,
+      childTask,
+      undoChildren: [],
+      onEdit: true,
+      onEditId: id,
+      errorMessage: ''
+    });
   };
 
   onCancel = () => {
     event.preventDefault();
     this.setState({
-      onEdit: false,
       task: '',
       childTask: [],
+      undoChildren: [],
+      onEdit: false,
       onEditId: null,
-      errorMessage: '',
-      undoChildren: []
+      errorMessage: ''
     });
   };
 
   onCreate = async () => {
     event.preventDefault();
-    if (!this.state.task) return console.log('task is required');
     const { task, childTask } = this.state;
+    if (!task) {
+      return this.setState({ errorMessage: '할일을 적어주세요' });
+    }
     const { data } = await axios.post('/todo', {
       task,
       childTask
@@ -68,7 +75,6 @@ class TodoList extends Component {
     item.task = task;
     item.childTask = childTask;
     const { data } = await axios.post(`/todo/${id}`, item);
-    console.log('update axios data  : ', data);
     this.setState(prev => ({
       data: [
         ...prev.data.map(item => {
@@ -116,11 +122,9 @@ class TodoList extends Component {
       item.isCompleted = !item.isCompleted;
       if (error.response.data.childTask) {
         const { childTask } = error.response.data;
-        const undoChildren = [];
-        for (const undoChild of childTask) {
-          const message = `@${undoChild.id} ${undoChild.task}`;
-          undoChildren.push(message);
-        }
+        const undoChildren = childTask.map(
+          undoChild => `@${undoChild.id} ${undoChild.task}`
+        );
         this.setState({
           errorMessage: '아래 할일 부터 완료해야 완료가 가능합니다.',
           undoChildren
@@ -143,7 +147,7 @@ class TodoList extends Component {
         <Dropdown
           fluid
           position="right"
-          placeholder="참조하기"
+          placeholder="참조할 리스트를 검색하세요"
           multiple
           search
           selection

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Table, Tab, Icon } from 'semantic-ui-react';
+import { Table, Icon } from 'semantic-ui-react';
 
 class TaskRow extends Component {
   state = {
@@ -19,7 +19,7 @@ class TaskRow extends Component {
 
   render() {
     const { Row, Cell, Body } = Table;
-    const { id, task, createdAt, childTask, modifiedAt, page } = this.props;
+    const { id, task, createdAt, childTask, modifiedAt } = this.props;
     const { isCompleted } = this.state;
     return (
       <Body>

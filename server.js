@@ -15,9 +15,10 @@ module.exports = app.prepare().then(() => {
   server.use(bodyParser.json());
 
   /**
-   * create todo's
+   * create task
+   *
    * request parameter
-   * task, childTask
+   * task, Array of childTask
    */
 
   server.post('/todo', (req, res) => {
@@ -39,6 +40,9 @@ module.exports = app.prepare().then(() => {
 
   /**
    * fetch all task data
+   *
+   * no need request parameter
+   *
    */
   server.get('/todo', (req, res) => {
     redis.keys('*', async (err, keys) => {
@@ -58,6 +62,12 @@ module.exports = app.prepare().then(() => {
     });
   });
 
+  /**
+   * fetch specific given ID task data
+   *
+   * request parameter
+   * id
+   */
   server.get('/todo/:id', (req, res) => {
     const key = req.params.id;
     redis.get(key, (err, result) => {
@@ -70,7 +80,10 @@ module.exports = app.prepare().then(() => {
   });
 
   /**
-   * update task data
+   * update specific given ID task data
+   *
+   * request parameter
+   * json of value
    */
 
   server.post('/todo/:id', async (req, res) => {

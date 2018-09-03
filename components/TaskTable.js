@@ -3,7 +3,6 @@ import React, { Component } from 'react';
 import { Table } from 'semantic-ui-react';
 
 import TaskRow from './TaskRow';
-import { isArray } from 'util';
 
 class TaskTable extends Component {
   state = {
@@ -15,31 +14,23 @@ class TaskTable extends Component {
   componentWillReceiveProps(nextProps) {
     if (nextProps.tableData !== this.props.tableData) {
       if (Array.isArray(nextProps.tableData)) {
-        this.setState(prev => ({
+        this.setState({
           data: _.uniqBy([...nextProps.tableData], 'id')
-        }));
+        });
       }
-      // else {
-      //   this.setState(prev => ({
-      //     data: _.uniqueBy([...prev.data, { ...nextProps.tableData }], 'id')
-      //   }));
-      // }
     }
   }
 
   handleSort = clickedColumn => () => {
     const { column, data, direction } = this.state;
-
     if (column !== clickedColumn) {
       this.setState({
         column: clickedColumn,
         data: _.sortBy(data, [clickedColumn]),
         direction: 'ascending'
       });
-
       return;
     }
-
     this.setState({
       data: data.reverse(),
       direction: direction === 'ascending' ? 'descending' : 'ascending'
