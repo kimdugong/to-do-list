@@ -2,6 +2,7 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const expect = chai.expect;
 chai.use(chaiHttp);
+const redis = require('../redis');
 const should = chai.should();
 const url = 'http://localhost:3000';
 
@@ -16,6 +17,24 @@ before('SERVER running', () => {
         expect(err).to.be.null;
         done();
       });
+  });
+
+  it('DB FLUSH for testing', done => {
+    redis.flushdb((error, result) => {
+      chai
+        .request(url)
+        .get('/todo/1')
+        .end((err, res) => {
+          res.should.have.status(500);
+          expect(res.body).to.deep.equal({
+            err: 'There is no matching data'
+          });
+          expect(err).to.be.null;
+          expect(error).to.be.null;
+          expect(result).to.equal('OK');
+          done();
+        });
+    });
   });
 
   it('Making dummy data before Testing', done => {
