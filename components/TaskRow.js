@@ -5,8 +5,7 @@ class TaskRow extends Component {
   state = {
     isCompleted: false
   };
-  renderChildTask = childTaskArray =>
-    childTaskArray.map(id => `@ ${id}`).join(' ');
+  renderRefTask = refTaskArray => refTaskArray.map(id => `@ ${id}`).join(' ');
 
   toggleComplete = async id => {
     const isCompleted = await this.props.onComplete(id, isCompleted);
@@ -19,7 +18,7 @@ class TaskRow extends Component {
 
   render() {
     const { Row, Cell, Body } = Table;
-    const { id, task, createdAt, childTask, modifiedAt } = this.props;
+    const { id, task, createdAt, refTask, modifiedAt } = this.props;
     const { isCompleted } = this.state;
     return (
       <Body>
@@ -39,8 +38,8 @@ class TaskRow extends Component {
           )}
 
           <Cell disabled={isCompleted}>{id}</Cell>
-          <Cell disabled={isCompleted}>{`${task}  ${this.renderChildTask(
-            childTask
+          <Cell disabled={isCompleted}>{`${task}  ${this.renderRefTask(
+            refTask
           )}`}</Cell>
           <Cell textAlign="right" disabled={isCompleted}>
             {new Date(createdAt).toLocaleString()}

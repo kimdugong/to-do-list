@@ -16,7 +16,7 @@ class TodoList extends Component {
     data: [],
     onEdit: false,
     task: '',
-    childTask: [],
+    refTask: [],
     onEditId: null,
     errorMessage: '',
     undoChildren: [],
@@ -31,10 +31,10 @@ class TodoList extends Component {
 
   onEdit = id => {
     event.preventDefault();
-    const { task, childTask } = _.find(this.state.data, data => data.id === id);
+    const { task, refTask } = _.find(this.state.data, data => data.id === id);
     this.setState({
       task,
-      childTask,
+      refTask,
       undoChildren: [],
       onEdit: true,
       onEditId: id,
@@ -46,7 +46,7 @@ class TodoList extends Component {
     event.preventDefault();
     this.setState({
       task: '',
-      childTask: [],
+      refTask: [],
       undoChildren: [],
       onEdit: false,
       onEditId: null,
@@ -56,13 +56,13 @@ class TodoList extends Component {
 
   onCreate = async () => {
     event.preventDefault();
-    const { task, childTask } = this.state;
+    const { task, refTask } = this.state;
     if (!task) {
       return this.setState({ errorMessage: '할일을 적어주세요' });
     }
     const { data } = await axios.post('/todo', {
       task,
-      childTask
+      refTask
     });
     this.setState(prev => ({ data: [...prev.data, data] }));
     this.onCancel();
@@ -71,9 +71,9 @@ class TodoList extends Component {
   onUpdate = async id => {
     event.preventDefault();
     const item = _.find(this.state.data, data => data.id === id);
-    const { task, childTask } = this.state;
+    const { task, refTask } = this.state;
     item.task = task;
-    item.childTask = childTask;
+    item.refTask = refTask;
     const { data } = await axios.post(`/todo/${id}`, item);
     this.setState(prev => ({
       data: [
@@ -82,7 +82,7 @@ class TodoList extends Component {
             ? {
                 ...item,
                 task: data.task,
-                childTask: data.childTask,
+                refTask: data.refTask,
                 isCompleted: data.isCompleted,
                 modifiedAt: data.modifiedAt
               }
@@ -109,7 +109,7 @@ class TodoList extends Component {
               ? {
                   ...item,
                   task: data.task,
-                  childTask: data.childTask,
+                  refTask: data.refTask,
                   isCompleted: data.isCompleted,
                   modifiedAt: data.modifiedAt
                 }
@@ -120,9 +120,9 @@ class TodoList extends Component {
       return data.isCompleted;
     } catch (error) {
       item.isCompleted = !item.isCompleted;
-      if (error.response.data.childTask) {
-        const { childTask } = error.response.data;
-        const undoChildren = childTask.map(
+      if (error.response.data.refTask) {
+        const { refTask } = error.response.data;
+        const undoChildren = refTask.map(
           undoChild => `@${undoChild.id} ${undoChild.task}`
         );
         this.setState({
@@ -164,9 +164,9 @@ class TodoList extends Component {
               return option;
             })}
           onChange={(event, data) => {
-            this.setState({ childTask: [...data.value] });
+            this.setState({ refTask: [...data.value] });
           }}
-          value={this.state.childTask}
+          value={this.state.refTask}
           style={{ marginTop: 10 }}
         />
 

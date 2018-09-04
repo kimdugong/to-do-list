@@ -2,6 +2,7 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const expect = chai.expect;
 chai.use(chaiHttp);
+const should = chai.should();
 const url = 'http://localhost:3000';
 
 before('SERVER running', () => {
@@ -23,12 +24,12 @@ before('SERVER running', () => {
       .post('/todo')
       .send({
         task: `test task data! could be edited`,
-        childTask: []
+        refTask: []
       })
       .end((err, res) => {
         res.should.have.status(200);
         expect(res.body.id).to.deep.equal(1);
-        expect(res.body.childTask).to.be.an('array');
+        expect(res.body.refTask).to.be.an('array');
         expect(res.body.task).to.deep.equal('test task data! could be edited');
         expect(err).to.be.null;
         done();
@@ -83,11 +84,11 @@ describe('Test suit for POST API', () => {
       .post('/todo')
       .send({
         task: 'test task!',
-        childTask: [1]
+        refTask: [1]
       })
       .end((err, res) => {
         res.should.have.status(200);
-        expect(res.body.childTask).to.be.an('array');
+        expect(res.body.refTask).to.be.an('array');
         expect(res.body.task).to.deep.equal('test task!');
         expect(err).to.be.null;
         done();
@@ -101,14 +102,14 @@ describe('Test suit for POST API', () => {
       .send({
         id: 1,
         task: 'test task! finally edited',
-        childTask: [],
+        refTask: [],
         isCompleted: false,
         modifiedAt: new Date(),
         createdAt: new Date()
       })
       .end((err, res) => {
         res.should.have.status(200);
-        expect(res.body.childTask).to.be.an('array');
+        expect(res.body.refTask).to.be.an('array');
         expect(res.body.task).to.deep.equal('test task! finally edited');
         expect(res.body.id).to.deep.equal(1);
         expect(err).to.be.null;
@@ -119,11 +120,11 @@ describe('Test suit for POST API', () => {
   it('should 422 FAILED update cause child task is not completed on /todo/:id POST', done => {
     chai
       .request(url)
-      .post('/todo/2')
+      .post('/todo/1')
       .send({
-        id: 2,
-        task: 'test task!',
-        childTask: [1],
+        id: 1,
+        task: 'test task! finally edited',
+        refTask: [],
         isCompleted: true,
         modifiedAt: new Date(),
         createdAt: new Date()
@@ -133,7 +134,7 @@ describe('Test suit for POST API', () => {
         expect(res.body.error).to.deep.equal(
           'This task refers incompleted task'
         );
-        expect(res.body.childTask[0].isCompleted).to.be.false;
+        expect(res.body.refTask[0].isCompleted).to.be.false;
         expect(err).to.be.null;
         done();
       });
@@ -142,20 +143,20 @@ describe('Test suit for POST API', () => {
   it('should UPDATE isCompleted to true for complete task has child task on /todo/:id POST', done => {
     chai
       .request(url)
-      .post('/todo/1')
+      .post('/todo/2')
       .send({
-        id: 1,
-        task: 'test task! finally edited',
-        childTask: [],
+        id: 2,
+        task: 'test task!',
+        refTask: [1],
         isCompleted: true,
         modifiedAt: new Date(),
         createdAt: new Date()
       })
       .end((err, res) => {
         res.should.have.status(200);
-        expect(res.body.childTask).to.be.an('array');
-        expect(res.body.task).to.deep.equal('test task! finally edited');
-        expect(res.body.id).to.deep.equal(1);
+        expect(res.body.refTask).to.be.an('array');
+        expect(res.body.task).to.deep.equal('test task!');
+        expect(res.body.id).to.deep.equal(2);
         expect(res.body.isCompleted).to.be.true;
         expect(err).to.be.null;
         done();
@@ -165,20 +166,20 @@ describe('Test suit for POST API', () => {
   it('should UPDATE isCompleted to true cause all child task is completed on /todo/:id POST', done => {
     chai
       .request(url)
-      .post('/todo/2')
+      .post('/todo/1')
       .send({
-        id: 2,
-        task: 'test task!',
-        childTask: [1],
+        id: 1,
+        task: 'test task! finally edited',
+        refTask: [],
         isCompleted: true,
         modifiedAt: new Date(),
         createdAt: new Date()
       })
       .end((err, res) => {
         res.should.have.status(200);
-        expect(res.body.childTask).to.be.an('array');
-        expect(res.body.task).to.deep.equal('test task!');
-        expect(res.body.id).to.deep.equal(2);
+        expect(res.body.refTask).to.be.an('array');
+        expect(res.body.task).to.deep.equal('test task! finally edited');
+        expect(res.body.id).to.deep.equal(1);
         expect(res.body.isCompleted).to.be.true;
         expect(err).to.be.null;
         done();

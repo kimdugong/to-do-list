@@ -79,7 +79,7 @@ class TaskTable extends Component {
         </Header>
         {_.map(
           this.dataPaging(data, this.props.page),
-          ({ task, id, createdAt, isCompleted, childTask, modifiedAt }) => (
+          ({ task, id, createdAt, isCompleted, refTask, modifiedAt }) => (
             <TaskRow
               key={id}
               id={id}
@@ -87,7 +87,7 @@ class TaskTable extends Component {
               createdAt={createdAt}
               modifiedAt={modifiedAt}
               isCompleted={isCompleted}
-              childTask={childTask}
+              refTask={refTask}
               onEdit={id => this.props.onEdit(id)}
               onComplete={id => this.props.onComplete(id)}
               page={this.props.page}

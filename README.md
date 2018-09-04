@@ -1,12 +1,10 @@
 # TO-DO-LIST - NextJS 와 Redis 를 이용한
 
-![to-do-list](https://d.pr/i/5VaxJQ+)
+![to-do-list](https://d.pr/i/n7tVFY+)
 
 ## 빌드, 실행방법
 
 ## 0. 준비작업
-
----
 
 ### OS
 
@@ -32,9 +30,9 @@ v6.1.0 npm 설치
 
 `brew install redis`
 
-## 1. 프로젝트 빌드
-
 ---
+
+## 1. 프로젝트 빌드
 
 ### 프로젝트 다운로드
 
@@ -66,9 +64,9 @@ v6.1.0 npm 설치
 
 http://localhost:3000
 
-## 3. 테스트
-
 ---
+
+## 3. 테스트
 
 데이터베이스에 데이터가 없어야 합니다.
 
@@ -89,3 +87,5 @@ http://localhost:3000
 ---
 
 ## 4. 개선할점
+
+---
