@@ -99,7 +99,6 @@ class TodoList extends Component {
     const item = _.find(this.state.data, data => data.id === id);
     item.isCompleted = !item.isCompleted;
     try {
-      console.log('item.isCompleted', item.isCompleted);
       const { data } = await axios.post(`/todo/${id}`, item);
       console.log('update axios data  : ', data);
       this.setState(prev => ({

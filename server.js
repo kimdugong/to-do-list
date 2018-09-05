@@ -8,10 +8,14 @@ const port = process.env.PORT || 3000;
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, dir: __dirname });
 const handle = app.getRequestHandler();
+
 const getAsync = promisify(redis.get).bind(redis);
+const setAsync = promisify(redis.set).bind(redis);
 const smembersAsync = promisify(redis.smembers).bind(redis);
 const saddAsync = promisify(redis.sadd).bind(redis);
 const sremAsync = promisify(redis.srem).bind(redis);
+const incrAsync = promisify(redis.incr).bind(redis);
+const getAllKeys = promisify(redis.keys).bind(redis);
 
 module.exports = app.prepare().then(() => {
   const server = express();
@@ -24,30 +28,32 @@ module.exports = app.prepare().then(() => {
    * task, Array of refTask
    */
 
-  server.post('/todo', (req, res) => {
-    redis.incr('id', (err, result) => {
-      const key = result;
+  server.post('/todo', async (req, res) => {
+    try {
+      if (!req.body.task || !Array.isArray(req.body.refTask)) {
+        return res.status(503).send({ err: 'Data is not appropriate' });
+      }
+      const key = await incrAsync('id');
+
       Object.assign(req.body, {
-        id: result,
+        id: key,
         createdAt: new Date(),
         isCompleted: false
       });
-      const value = JSON.stringify(req.body);
-      redis.set(key, value, async (err, data) => {
-        if (err) throw err;
-        // redis.expire(key, 10);
-        if (req.body.refTask.length !== 0) {
-          await Promise.all(
-            req.body.refTask.map(
-              async refTask => await saddAsync(`childTask:${refTask}`, key)
-            )
-          );
-          return res.json(JSON.parse(value));
-        } else {
-          return res.json(JSON.parse(value));
-        }
-      });
-    });
+
+      const task = JSON.stringify(req.body);
+      await setAsync(key, task);
+      // redis.expire(key, 10);
+      await Promise.all(
+        req.body.refTask.map(
+          async refTask => await saddAsync(`childTask:${refTask}`, key)
+        )
+      );
+      return res.json(JSON.parse(task));
+    } catch (err) {
+      console.log('create task error  : ', err);
+      return res.status(503).send({ err });
+    }
   });
 
   /**
@@ -56,12 +62,13 @@ module.exports = app.prepare().then(() => {
    * no need request parameter
    *
    */
-  server.get('/todo', (req, res) => {
-    redis.keys('*', async (err, keys) => {
-      if (err) throw err;
-      if (!keys)
-        return res.status(500).send({ err: 'There is no matching data' });
-      const values = await Promise.all(
+  server.get('/todo', async (req, res) => {
+    try {
+      const keys = await getAllKeys('*');
+      if (keys.length === 0) {
+        return res.status(503).send({ err: 'There is no keys' });
+      }
+      const tasks = await Promise.all(
         keys
           .map(key => {
             if (!isNaN(key * 1)) {
@@ -70,8 +77,10 @@ module.exports = app.prepare().then(() => {
           })
           .filter(e => e !== undefined)
       );
-      res.send(values.map(e => JSON.parse(e)));
-    });
+      return res.send(tasks.map(task => JSON.parse(task)));
+    } catch (err) {
+      return res.status(503).send({ err });
+    }
   });
 
   /**
@@ -80,15 +89,17 @@ module.exports = app.prepare().then(() => {
    * request parameter
    * id
    */
-  server.get('/todo/:id', (req, res) => {
-    const key = req.params.id;
-    redis.get(key, (err, result) => {
-      if (err) throw err;
-      if (!result)
+  server.get('/todo/:id', async (req, res) => {
+    try {
+      const key = req.params.id;
+      const task = await getAsync(key);
+      if (!task) {
         return res.status(500).send({ err: 'There is no matching data' });
-      const value = JSON.parse(result);
-      res.json(value);
-    });
+      }
+      return res.json(JSON.parse(task));
+    } catch (err) {
+      return res.status(503).send({ err });
+    }
   });
 
   /**
@@ -99,38 +110,38 @@ module.exports = app.prepare().then(() => {
    */
 
   server.post('/todo/:id', async (req, res) => {
-    const key = req.params.id;
-    const { isCompleted, refTask } = req.body;
-    const prevTask = await getAsync(key);
-    const prevRefTask = JSON.parse(prevTask).refTask;
-    const removedRefTask = prevRefTask.filter(e => refTask.indexOf(e) === -1);
+    try {
+      const key = req.params.id;
+      const { isCompleted, refTask } = req.body;
+      const prevTask = await getAsync(key);
+      const prevRefTask = JSON.parse(prevTask).refTask;
+      const removedRefTask = prevRefTask.filter(e => refTask.indexOf(e) === -1);
 
-    if (isCompleted) {
-      const childRefKeys = await smembersAsync(`childTask:${key}`);
-      const values = await Promise.all(
-        childRefKeys.map(key => {
-          return getAsync(key);
-        })
-      );
-      const undoChild = values
-        .map(e => JSON.parse(e))
-        .filter(e => !e.isCompleted);
-      if (undoChild.length !== 0) {
-        return res.status(422).send({
-          error: 'This task refers incompleted task',
-          refTask: undoChild
-        });
+      if (isCompleted) {
+        const childRefKeys = await smembersAsync(`childTask:${key}`);
+        const values = await Promise.all(
+          childRefKeys.map(key => {
+            return getAsync(key);
+          })
+        );
+        const undoChild = values
+          .map(e => JSON.parse(e))
+          .filter(e => !e.isCompleted);
+        if (undoChild.length !== 0) {
+          return res.status(422).send({
+            error: 'This task refers incompleted task',
+            refTask: undoChild
+          });
+        }
       }
-    }
 
-    Object.assign(req.body, {
-      modifiedAt: new Date()
-    });
-    const value = JSON.stringify(req.body);
-    redis.set(key, value, async (error, data) => {
-      if (error) throw error;
-      if (!data)
-        return res.status(500).send({ error: 'There is no matching data' });
+      Object.assign(req.body, {
+        modifiedAt: new Date()
+      });
+
+      const task = JSON.stringify(req.body);
+
+      await setAsync(key, task);
       await Promise.all(
         removedRefTask.map(
           async refTask => await sremAsync(`childTask:${refTask}`, key)
@@ -141,8 +152,10 @@ module.exports = app.prepare().then(() => {
           async refTask => await saddAsync(`childTask:${refTask}`, key)
         )
       );
-      return res.json(JSON.parse(value));
-    });
+      return res.json(JSON.parse(task));
+    } catch (err) {
+      return res.status(503).send({ err });
+    }
   });
 
   server.get('*', (req, res) => {
